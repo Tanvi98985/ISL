@@ -1,0 +1,2 @@
+Upload ISL Sign Image,Prediction,timestamp
+.gradio/flagged/Upload ISL Sign Image/28434f8fa83846c23eb1/0.jpg,"{""label"": ""E"", ""confidences"": [{""label"": ""E"", ""confidence"": 0.9688528776168823}, {""label"": ""X"", ""confidence"": 0.0017438593786209822}, {""label"": ""3"", ""confidence"": 0.0015901379520073533}, {""label"": ""B"", ""confidence"": 0.0014739016769453883}, {""label"": ""I"", ""confidence"": 0.0014486534055322409}]}",2026-03-02 00:46:36.336867
