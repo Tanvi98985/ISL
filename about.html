@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>About — AI Sign Language → Text Converter</title>
+<meta name="description" content="About the ISL AI sign language converter project."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-brand">🤟 <span>AI Sign Language → Text Converter</span></div>
+  <ul class="navbar-nav">
+    <li><a href="index.html">🎯 Detection</a></li>
+    <li><a href="reference.html">📖 Reference</a></li>
+    <li><a href="about.html" class="active">ℹ️ About</a></li>
+  </ul>
+  <div class="navbar-right">
+    <button class="btn btn-secondary btn-sm" id="theme-toggle">☀️ Light</button>
+  </div>
+</nav>
+
+<main class="page-container">
+  <div class="about-hero">
+    <h1>AI Sign Language → Text Converter</h1>
+    <p>An AI-powered tool that translates Indian Sign Language gestures into text in real-time.</p>
+  </div>
+
+  <!-- Description card -->
+  <div class="card" style="max-width:720px;margin:0 auto 2rem;">
+    <p style="font-size:1rem;line-height:1.8;color:var(--muted);">
+      This project detects Indian Sign Language (ISL) gestures using AI. It supports letters 
+      <strong style="color:var(--text);">A–Z</strong> and numbers 
+      <strong style="color:var(--text);">0–9</strong>. The system uses 
+      <strong style="color:var(--primary);">MediaPipe</strong> hand tracking and a 
+      <strong style="color:var(--primary);">Neural Network</strong> model to convert signs 
+      into text. A hold-to-confirm mechanism (2 seconds at ≥70% confidence) ensures 
+      accurate and intentional letter detection.
+    </p>
+  </div>
+
+  <!-- Feature cards -->
+  <div class="about-grid">
+    <div class="feat-card">
+      <div class="feat-icon">🖐️</div>
+      <h3>Hand Detection</h3>
+      <p>Uses MediaPipe's 3D dual-hand landmark detection with bone geometry for robust occlusion handling.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🧠</div>
+      <h3>Neural Network</h3>
+      <p>A 316-dim feature feed-forward NN trained on ISL gesture data with Landmark Cutout augmentation.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📝</div>
+      <h3>Text Conversion</h3>
+      <p>Letters are confirmed after a 2-second steady hold, assembling words in real time in the output box.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📸</div>
+      <h3>Image Upload</h3>
+      <p>Alternatively, upload any static image to instantly detect and classify the sign shown in the image.</p>
+    </div>
+  </div>
+
+  <!-- Tech stack -->
+  <div class="card" style="max-width:480px;margin:2rem auto 0;">
+    <div class="card-header">
+      <span class="card-title">Tech Stack</span>
+    </div>
+    <ul class="stack-list">
+      <li>Python 3 + PyTorch (Neural Network)</li>
+      <li>MediaPipe (3D Hand Landmark Detection)</li>
+      <li>Gradio (REST API backend)</li>
+      <li>HTML5 / CSS3 / JavaScript (Frontend)</li>
+      <li>WebRTC getUserMedia (Live Webcam)</li>
+    </ul>
+  </div>
+</main>
+
+<script src="js/script.js"></script>
+</body>
+</html>

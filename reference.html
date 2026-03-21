@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sign Reference — AI Sign Language Converter</title>
+<meta name="description" content="Reference grid for ISL hand signs A-Z and 0-9."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-brand">🤟 <span>AI Sign Language → Text Converter</span></div>
+  <ul class="navbar-nav">
+    <li><a href="index.html">🎯 Detection</a></li>
+    <li><a href="reference.html" class="active">📖 Reference</a></li>
+    <li><a href="about.html">ℹ️ About</a></li>
+  </ul>
+  <div class="navbar-right">
+    <button class="btn btn-secondary btn-sm" id="theme-toggle">☀️ Light</button>
+  </div>
+</nav>
+
+<main class="page-container">
+  <h1 class="page-title">📖 Sign Reference</h1>
+  <p class="page-subtitle">All supported ISL hand signs — letters A–Z and digits 0–9.</p>
+
+  <!-- Letters -->
+  <div class="card" style="margin-bottom:1.5rem;">
+    <div class="card-header">
+      <span class="card-title">Letters A – Z</span>
+      <span style="font-size:0.82rem;color:var(--muted);">26 signs</span>
+    </div>
+    <div class="ref-grid" id="letters-grid">
+      <!-- populated by JS -->
+    </div>
+  </div>
+
+  <!-- Numbers -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Numbers 0 – 9</span>
+      <span style="font-size:0.82rem;color:var(--muted);">10 signs</span>
+    </div>
+    <div class="ref-grid" id="numbers-grid"></div>
+  </div>
+</main>
+
+<script src="js/script.js"></script>
+<script>
+(function buildGrid() {
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+  const numbers = '0123456789'.split('');
+
+  function makeCard(char) {
+    const div = document.createElement('div');
+    div.className = 'sign-card';
+    div.innerHTML = `
+      <img src="assets/signs/${char}.png" alt="Sign for ${char}" loading="lazy"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"/>
+      <div style="display:none;align-items:center;justify-content:center;height:120px;font-size:3rem;font-weight:800;color:var(--primary);">${char}</div>
+      <div class="sign-label">${char}</div>`;
+    return div;
+  }
+
+  const lg = document.getElementById('letters-grid');
+  const ng = document.getElementById('numbers-grid');
+  letters.forEach(c => lg && lg.appendChild(makeCard(c)));
+  numbers.forEach(c => ng && ng.appendChild(makeCard(c)));
+})();
+</script>
+</body>
+</html>

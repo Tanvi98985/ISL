@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Detection — AI Sign Language → Text Converter</title>
+<meta name="description" content="Live webcam and image-upload detection of Indian Sign Language using AI."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-brand">🤟 <span>AI Sign Language → Text Converter</span></div>
+  <ul class="navbar-nav">
+    <li><a href="index.html" class="active">🎯 Detection</a></li>
+    <li><a href="reference.html">📖 Reference</a></li>
+    <li><a href="about.html">ℹ️ About</a></li>
+  </ul>
+  <div class="navbar-right">
+    <button class="btn btn-secondary btn-sm" id="theme-toggle">☀️ Light</button>
+  </div>
+</nav>
+
+<main class="page-container">
+  <h1 class="page-title">🎯 Detection</h1>
+  <p class="page-subtitle">Show your hand sign to the camera — hold for 2 seconds to confirm a letter.</p>
+
+  <!-- Mode Tabs -->
+  <div class="tab-bar">
+    <button class="tab-btn active" data-tab="webcam" data-group="detection">📷 Live Webcam</button>
+    <button class="tab-btn" data-tab="upload" data-group="detection">🖼️ Upload Image</button>
+  </div>
+
+  <!-- ── WEBCAM PANEL ── -->
+  <div class="tab-panel active" data-panel="webcam" data-panel-group="detection">
+    <div class="detection-grid">
+
+      <!-- Left: Camera -->
+      <div class="card" style="padding:0.75rem;">
+        <div class="camera-container">
+          <video id="cam-video" style="display:none;" muted playsinline></video>
+          <canvas id="cap-canvas" style="display:none;"></canvas>
+          <div id="cam-placeholder" class="camera-placeholder">
+            <div class="cam-icon">📷</div>
+            <p>Camera is off</p>
+            <p style="font-size:0.8rem;color:var(--muted);">Click Start to begin</p>
+          </div>
+          <div class="camera-status">
+            <div class="status-dot" id="status-dot"></div>
+            <span id="status-text">OFF</span>
+          </div>
+        </div>
+        <div class="btn-row" style="margin-top:0.75rem;">
+          <button class="btn btn-primary" id="start-btn">▶ Start</button>
+          <button class="btn btn-danger" id="stop-btn">■ Stop</button>
+        </div>
+      </div>
+
+      <!-- Center: Prediction -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Detected Letter</span>
+        </div>
+        <div class="letter-display">
+          <div class="letter-char empty" id="detected-letter">—</div>
+        </div>
+        <div class="confidence-bar-wrap">
+          <div class="confidence-label">
+            <span>Confidence</span><span id="conf-pct">0%</span>
+          </div>
+          <div class="confidence-bar">
+            <div class="confidence-fill" id="conf-fill"></div>
+          </div>
+        </div>
+        <p class="status-msg" id="status-msg">Click Start to begin detection.</p>
+        <ul class="candidates-list" id="candidates"></ul>
+      </div>
+
+      <!-- Right: Word Output + Buttons -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Word Output</span>
+        </div>
+        <div class="word-output" id="word-output"><span class="cursor"></span></div>
+        <div class="btn-row">
+          <button class="btn btn-secondary" id="space-btn">⎵ Space</button>
+          <button class="btn btn-secondary" id="backspace-btn">⌫ Back</button>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-danger btn-sm" id="clear-btn">🗑 Clear</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── UPLOAD PANEL ── -->
+  <div class="tab-panel" data-panel="upload" data-panel-group="detection">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;align-items:start;">
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Upload Image</span>
+          <button class="btn btn-secondary btn-sm" id="reset-upload">↩ Reset</button>
+        </div>
+        <div id="drop-area" class="upload-area">
+          <input type="file" id="file-input" accept="image/*"/>
+          <div class="upload-icon">🖼️</div>
+          <p><strong>Click or drag</strong> an image here</p>
+          <p style="margin-top:0.4rem;font-size:0.8rem;">JPG, PNG, WebP supported</p>
+        </div>
+        <div id="upload-preview" class="upload-preview" style="display:none;">
+          <img id="preview-img" src="" alt="Preview"/>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Prediction Result</span>
+        </div>
+        <div id="upload-result" class="upload-result">
+          <p style="color:var(--muted);font-size:0.9rem;">Upload an image to see the prediction.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<script src="js/script.js"></script>
+</body>
+</html>
