@@ -96,6 +96,140 @@ def compute_both_hands_features_3d(hands_landmarks_3d):
     return np.concatenate([h1, h2])
 
 
+# ── Manual Rule-Based Classification (fallback) ─────────────────────
+# Landmark indices: 0=wrist, 1-4=thumb, 5-8=index, 9-12=middle,
+#                   13-16=ring, 17-20=pinky
+# Tip/PIP/MCP per finger:
+#   Thumb:  tip=4, IP=3,  MCP=2,  CMC=1
+#   Index:  tip=8, DIP=7, PIP=6,  MCP=5
+#   Middle: tip=12,DIP=11,PIP=10, MCP=9
+#   Ring:   tip=16,DIP=15,PIP=14, MCP=13
+#   Pinky:  tip=20,DIP=19,PIP=18, MCP=17
+
+MANUAL_CONFIDENCE = 0.85          # confidence reported for manual matches
+NN_FALLBACK_THRESHOLD = 0.60      # use manual rules if NN top-1 conf < this
+
+
+def _lm_array(landmarks_3d):
+    """Convert list of (x,y,z) tuples to (21,3) numpy array, wrist-centred & scaled."""
+    lm = np.array(landmarks_3d, dtype=np.float32)
+    wrist = lm[0].copy()
+    lm_c = lm - wrist
+    scale = max(np.max(np.linalg.norm(lm_c, axis=1)), 1e-6)
+    return lm_c / scale
+
+
+def _dist(a, b):
+    """Euclidean distance between two 3D points."""
+    return float(np.linalg.norm(a - b))
+
+
+def _angle_at(lm, a, b, c):
+    """Angle (radians) at vertex b formed by points a-b-c."""
+    v1 = lm[a] - lm[b]
+    v2 = lm[c] - lm[b]
+    dot = np.dot(v1, v2)
+    norms = np.linalg.norm(v1) * np.linalg.norm(v2) + 1e-8
+    return math.acos(float(np.clip(dot / norms, -1, 1)))
+
+
+def _is_finger_extended(lm, finger):
+    """
+    Return True if finger is extended (straight).
+    Uses: tip is far from wrist AND PIP angle is relatively open (> 2.0 rad).
+    """
+    tip_idx  = {0: 4, 1: 8, 2: 12, 3: 16, 4: 20}[finger]
+    pip_idx  = {0: 3, 1: 6, 2: 10, 3: 14, 4: 18}[finger]
+    mcp_idx  = {0: 2, 1: 5, 2: 9,  3: 13, 4: 17}[finger]
+
+    if finger == 0:  # thumb — uses different geometry
+        # Thumb extended if tip is further from palm centre than IP joint
+        palm_center = (lm[0] + lm[5] + lm[17]) / 3.0
+        return _dist(lm[4], palm_center) > _dist(lm[3], palm_center) * 1.05
+
+    # For other fingers: tip must be further from wrist than PIP,
+    # and angle at PIP should be > ~2.0 rad (relatively straight)
+    tip_dist = _dist(lm[tip_idx], lm[0])
+    pip_dist = _dist(lm[pip_idx], lm[0])
+    pip_angle = _angle_at(lm, mcp_idx, pip_idx, tip_idx - 1)  # DIP = tip_idx - 1
+    return tip_dist > pip_dist * 0.85 and pip_angle > 1.8
+
+
+def _is_finger_curled(lm, finger):
+    """Return True if finger is curled (bent into palm)."""
+    return not _is_finger_extended(lm, finger)
+
+
+def _get_extension_state(lm):
+    """Return tuple of booleans: (thumb, index, middle, ring, pinky) extended."""
+    return tuple(_is_finger_extended(lm, f) for f in range(5))
+
+
+def manual_classify_landmarks(landmarks_3d):
+    """
+    Rule-based classification for ISL signs: 1, 2, 5, 8, E, P, X.
+
+    Args:
+        landmarks_3d: list of 21 (x, y, z) tuples from MediaPipe
+
+    Returns:
+        (label: str, confidence: float) if a rule matches, else None
+    """
+    lm = _lm_array(landmarks_3d)
+    thumb, index, middle, ring, pinky = _get_extension_state(lm)
+
+    # ── Sign "1": only index extended ────────────────────────────────
+    if index and not middle and not ring and not pinky and not thumb:
+        return ("1", MANUAL_CONFIDENCE)
+
+    # ── Sign "2": index + middle extended (V-shape), others curled ───
+    if index and middle and not ring and not pinky and not thumb:
+        return ("2", MANUAL_CONFIDENCE)
+
+    # ── Sign "5": all five fingers extended (open palm) ──────────────
+    if thumb and index and middle and ring and pinky:
+        return ("5", MANUAL_CONFIDENCE)
+
+    # ── Sign "8": thumb, index, middle, ring extended;
+    #    middle tip touches thumb tip ──────────────────────────────────
+    if index and middle and ring and not pinky:
+        mid_thumb_dist = _dist(lm[12], lm[4])  # middle tip → thumb tip
+        if mid_thumb_dist < 0.15:  # close enough = touching
+            return ("8", MANUAL_CONFIDENCE)
+
+    # ── Sign "E": all fingers curled, thumb across front ─────────────
+    if not index and not middle and not ring and not pinky:
+        # Thumb should be across the front (near index/middle base)
+        thumb_near_index = _dist(lm[4], lm[6]) < 0.25
+        thumb_near_middle = _dist(lm[4], lm[10]) < 0.25
+        if thumb_near_index or thumb_near_middle:
+            return ("E", MANUAL_CONFIDENCE)
+
+    # ── Sign "P": index + middle extended pointing downward,
+    #    thumb out to the side ─────────────────────────────────────────
+    if index and middle and not ring and not pinky:
+        # "P" differs from "2" by fingers pointing DOWN (y of tips > y of MCP)
+        # In MediaPipe, y increases downward in image space
+        # We use normalised coords where wrist=origin, so check relative positions
+        idx_pointing_down = lm[8][1] > lm[5][1]    # index tip below MCP
+        mid_pointing_down = lm[12][1] > lm[9][1]   # middle tip below MCP
+        if idx_pointing_down and mid_pointing_down and thumb:
+            return ("P", MANUAL_CONFIDENCE)
+
+    # ── Sign "X": index finger hooked/bent, others curled ────────────
+    if not middle and not ring and not pinky and not thumb:
+        # Index must be partially extended but bent at DIP/PIP
+        idx_pip_angle = _angle_at(lm, 5, 6, 7)  # MCP→PIP→DIP
+        idx_dip_angle = _angle_at(lm, 6, 7, 8)  # PIP→DIP→TIP
+        # Hook shape: PIP somewhat open (> 1.2rad) but DIP bent (< 2.2rad)
+        idx_tip_dist = _dist(lm[8], lm[0])
+        idx_mcp_dist = _dist(lm[5], lm[0])
+        if idx_tip_dist > idx_mcp_dist * 0.5 and idx_pip_angle > 1.0 and idx_dip_angle < 2.5:
+            return ("X", MANUAL_CONFIDENCE)
+
+    return None
+
+
 # ── Landmark Cutout Augmentation ─────────────────────────────────────
 # Map each finger to its feature indices within a 158-dim single-hand vector.
 # Layout: coords[0:63], bone_vecs[63:123], bone_lens[123:143], angles[143:158]
@@ -460,7 +594,27 @@ def predict(image):
     with torch.no_grad():
         probs = torch.softmax(model(tensor), dim=1)
         top5_p, top5_i = probs.topk(5)
-        return {class_names[top5_i[0][j].item()]: float(top5_p[0][j]) for j in range(5)}
+        result = {class_names[top5_i[0][j].item()]: float(top5_p[0][j]) for j in range(5)}
+
+    # Manual fallback: if NN top-1 confidence is low, try rule-based detection
+    top1_conf = max(result.values())
+    if top1_conf < NN_FALLBACK_THRESHOLD:
+        manual = manual_classify_landmarks(hands_3d[0])
+        if manual is not None:
+            label, m_conf = manual
+            # Build result dict with manual prediction on top
+            result = {label: m_conf}
+            # Add remaining NN predictions (excluding duplicate)
+            nn_preds = [
+                (class_names[top5_i[0][j].item()], float(top5_p[0][j]))
+                for j in range(5)
+                if class_names[top5_i[0][j].item()] != label
+            ]
+            nn_preds.sort(key=lambda kv: -kv[1])
+            for k, v in nn_preds[:4]:
+                result[k] = v
+
+    return result
 
 
 def _predict_stream_hold_then_show(image, hold_state: dict, text_state: str):
@@ -671,6 +825,13 @@ def launch_live():
                 top_p, top_i = probs.max(1)
                 pred = class_names[top_i.item()]
                 conf = top_p.item() * 100
+
+            # Manual fallback for OpenCV live mode
+            if conf < NN_FALLBACK_THRESHOLD * 100:
+                manual = manual_classify_landmarks(hands_3d[0])
+                if manual is not None:
+                    pred, m_conf = manual
+                    conf = m_conf * 100
 
             # HUD
             overlay = frame.copy()
